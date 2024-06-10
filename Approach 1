@@ -1,0 +1,42 @@
+#Approach 1:
+Note: Unless you have a Mac, it is easiest to use Ubuntu for this process. I am not sure how it will work with Mac, Windows, or other Linux distros
+
+Follow along the tutorial(https://learn.sparkfun.com/tutorials/using-sparkfun-edge-board-with-ambiq-apollo3-sdk/example-applications) until you get to example applications
+Make sure your version of GNU-ARM is 10.3, this process did not work for me if you download 13.2.1
+It is crucial to not skip over this step: 
+“$AMB_ROOT/boards_sfe — In SparkFun's mirror version of the Ambiq SDK v2.4.2, the BSP files are linked as a submodule from a separate repository.
+It is advisable for users to clone the submodules into the AmbiqSuiteSDK repository.
+However, users can also manually download the .zip file of the SparkFun_Apollo3_AmbiqSuite_BSPs and extract the contents into the $AMB_ROOT/boards_sfe directory.”
+
+Separately, you need to convert your .tflite model into a C array. The way to do this can be found in the file convert_to_c_array.
+This will create the file model.cc which you will download 
+Open the file and make the following adjustments
+Change the variable assignment of the C array to “alignas(8) const unsigned char g_model[ ] = { “
+Scroll down to the bottom of the C array and change the length variable to “const int g_model_len = (whatever the number is, should be pretty massive)” 
+Save the file
+Now we will use a script to convert the C array into binary. The file used to this can be found in this repo as binary_test.
+This should create the file model.bin which can be found in the output path specified.
+This file should also only be a few kB rather than MB
+If you have been doing everything in Ubuntu, skip the next step
+If you have been crossing between Ubuntu and Windows, now upload model.bin to your google drive, you can now access the file from Ubuntu. Download the file
+Open your Ubuntu terminal 
+cd to …/AmbiqSuiteSDK-master/…/tensorflow_person_detection/gcc just like the main tutorial
+Now run “nano Makefile”
+Scroll down to line 171, it should start with “bootload_asb”
+Change all “person_detection/person_detection.bin” with model/model.bin
+Note: if you gave the model a different name, then adjust accordingly
+Save the makefile
+cd bin
+Now copy model.bin into this folder by running “cp /path/to/model.bin .”
+cd back to …/gcc
+Now just do the same thing as the tutorial: “make clean” , hold 14, press reset, 14, “make COM_PORT …” , etc
+You will likely have to play around with the board and the timing of how you press the buttons to make sure it is properly connected,it took me 10+ attempts before it actually uploaded and it is still failing more often than not.
+
+Troubleshooting: 
+ If you get an error “no file or directory called …/asb.py” then follow these steps:
+cd to …boards_sfe/common/tools_sfe/asb
+Then git clone this repo https://github.com/sparkfun/Apollo3_Uploader_ASB 
+Now cd back to …boards_sfe/edge/examples/tensorflow_person_detection/gcc
+nano Makefile
+On line 156, a little bit before the previous edit, just edit “ASB_UPLOADER=$(PYTHON3) $(COMMONPATH)/tools_sfe/asb/asb.py” to “ASB_UPLOADER=$(PYTHON3) $(COMMONPATH)/tools_sfe/asb/Apollo3_Uploader_ASB//asb.py”
+Now your makefile should be good to go
