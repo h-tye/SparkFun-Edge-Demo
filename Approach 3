@@ -1,0 +1,8 @@
+The same steps as approach 2 until you create the binary file.
+
+Approach 3(Undetermined if flashing works):
+After you create the hello_world.bin file, you can try running the following command to see if it works: 
+Note you will first have to cd to …boards_sfe then run git checkout 0ebfb62efcec07ca60394c64de70a0b068f361a3
+
+Then cd to …tflite-micro
+python3 /home/harry/Documents/tflite-micro/tensorflow/lite/micro/tools/make/downloads/AmbiqSuiteSDK/boards_sfe/common/tools_sfe/ambiq/ambiq_bin2board.py --bin /home/harry/Documents/tflite-micro/tflite-micro-sparkfun-edge-examples/gen/bin/hello_world --load-address-blob 0x20000 --magic-num 0xCB -o hello_world --version 0x0 --load-address-wired 0xC000 -i 6 --options 0x1 -b 115200 -port /dev/ttyUSB0 -r 1 -v
