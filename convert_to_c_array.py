@@ -1,4 +1,6 @@
 #convert .tflite to cc file and make neccessary adjustments
+#add this to end of your trained tflite model
+
 model_all_path = "final_model.tflite"
 
 !apt-get -qq install xxd
