@@ -1,0 +1,120 @@
+#Approach 2(Flashing was unsuccessful):
+
+Main Tutorial: AI Speech Recognition with TensorFlow Lite for Microcontrollers and SparkFun Edge.
+Follow along until step 3 and make sure you have everything required in the tutorial
+
+
+If you haven’t already, open Ubuntu terminal and cd to a place where you want to store everything, I used Documents.
+
+In step 3 part a, the github repo it asks you to clone no longer exists so instead clone this repo: tensorflow/tflite-micro: Infrastructure to enable deployment of ML models to low-power resource-constrained embedded targets (including microcontrollers and digital signal processors). (github.com)
+
+Then cd tflite-micro
+
+You’re now going to clone another repo: advaitjain/tflite-micro-sparkfun-edge-examples (github.com) 
+
+Now cd tflite-micro-sparkfun-edge-examples/examples/hello_world
+
+Then ls hello_world, you should see 9 files with .cc or .h extensions
+
+The makefile used to build the binary is only good for the examples(hello_world, person_detection,etc.) so we have to edit the hello_world(or any other example) directory to match our desired model.
+
+Assuming you have a model that is converted to a .tflite file(there are tutorials for this on tensorflow), you will add the following to the end of your script: 
+
+NOTE:model_all.tflite is the file that the tflite model was written to, so the name is obviously subject to change
+
+This will create the file model.cc, download this file.
+
+Once downloaded, open it(I recommend with VS code) and make the following adjustments:
+Add “#include model.h” before the C array
+Then change the variable assignment of the C array to “alignas(8) const unsigned char g_model[ ] = { “
+Scroll down to the bottom of the C array and change the length variable to “const int g_model_len = (whatever the number is, should be pretty massive)” 
+Save the file
+
+If you have been doing all the model editing in ubuntu as well then just download the file. If you have been editing and saving the file separately, then I would recommend uploading it to your google drive and then you’ll be able to access your drive from ubuntu and download it
+
+Go back to ubuntu terminal and cd back to the hello_world directory with the 9 files.
+
+Remove the model.cc that was there original using: rm model.cc
+
+Then copy the new model.cc into the directory by using command: cp /path/to/downloaded/new/model.cc .   
+
+Now navigate backwards so that you are in the directory …/tflite-micro/tflite-micro-sparkfun-edge-examples
+
+Then run the command make examples, you will likely have to wait a 5-10 minutes for this to complete
+
+Now cd to …/tflite-micro/tflite-micro-sparkfun-edge-examples/gen/bin 
+
+ls and you will see the compiled binary files, use cat to open them(e.g cat hello_world). The .d files are NOT the binaries. Since we modified hello_world, that is our model’s compiled binary. This is no longer binary for the hello_world example, I would recommend changing its name so you don’t get confused
+
+Now in Ubuntu terminal cd back to …/tflite-micro
+
+cd to …/tflite-micro/tensorflow/lite/micro/tools/make/downloads
+
+Now run git clone on this repo sparkfun/AmbiqSuiteSDK: A copy of the AmbiqSuite SDK available on GitHub. Can be used to include AmbiqSuite as a submodule. May be used to track issues in SDK releases, however this repo is not maintained by AmbiqMi
+
+Once cloned, cd into boards_sfe
+
+Run git clone on this repo sparkfun/SparkFun_Apollo3_AmbiqSuite_BSPs: One-stop-shop for all your AmbiqSuite SDK board support package needs. (github.com)
+
+These steps have to be done because the old repo used in the tutorial has been fragmented into many parts so we have to string together the pieces to create the original directory
+
+Now cd back to …/tflite-micro
+
+Run the following command: python3 tensorflow/lite/micro/tools/make/downloads/AmbiqSuiteSDK/tools/apollo3_scripts/create_cust_image_blob.py --bin tflite-micro-sparkfun-edge-examples/gen/bin/hello_world(or whatever name you gave the binary file)   --load-address 0xC000 --magic-num 0xCB -o main_nonsecure_ota --version 0x0
+
+This is going to throw some errors, don’t worry.
+
+The issue is that all the python files we’re using to sign the binary are from PyCrypto which is incredibly out of date, so all the files are written in python2. 
+You can either edit the files by following the rules below or just install PyCryptodome to save time
+
+	If I do not have the files supplied yet, here are the rules of editing:
+Use “nano path/to/file/that/threw/error” to edit the file that threw the error
+Replace all “long” with”int”
+If there is an L directly next to a number like “4L”, delete the L
+Run the command again, and edit the next file that throws an error
+One file will throw the error “no module named _new_number”, change the file so that it is “from Crypto.Util._new_number import *”
+Another file will throw the error “no module named _OSRNG”, change the file so that is “from Crypto.Random.OSRNG …”
+Another file will throw the error “no module named SHAd256” and “no module named FortunaGenerator”, you will have to edit the file so that before you import the modules, you have “sys.append.path(path/to/Fortuna/file)”. Then you will have to edit the import statements to “from SHAd256 import * ” and “from FortunaGenerator import * “
+
+You will have to do the rest of these steps even if you have PyCryptodome
+
+Run the command again, you will get the error “no module  named keys_info”
+
+Now nano … /tensorflow/lite/micro/tools/make/downloads/AmbiqSuiteSDK/tools/apollo3_scripts/create_cust_image_blob.py
+
+Scroll down the file until you see the following lines: 
+
+parser.add_argument('-k', type=str, dest='keyFile', nargs='?', default='keys_info.py',
+                        help='key file in specified format [default = keys_info.py]')
+
+You need to add a 0 after “info” for both of the key_info’s
+
+Now run the command again
+
+You shouldn’t get any errors and should instead  get the message “writing to file main_nonsecure_ota.bin”
+
+Now run the command 
+Python3 tensorflow/lite/micro/tools/make/downloads/AmbiqSuiteSDK/tools/apollo3_scripts/create_cust_wireupdate_blob.py --load-address 0x20000 --bin main_nonsecure_ota.bin -i 6 -o main_nonsecure_wire --options 0x1
+
+Again you will get the error “no module named keys_info”, so you will do the same thing as last time
+just nano into …/create_cust_wireupdate_blob.py and replace add a 0 to “keys_info” 
+
+Now run the command again, you should get no errors and text that says “writing to main_nonsecure_wire.bin  / Image from …” 
+
+If you cd into …/tflite-micro and then ls you will say that there now exists the file main_nonsecure_wire.bin 
+
+Now pick up on the tutorial starting from Page 5
+
+If you are using Ubuntu, you will have to complete the following steps before page 6
+cd to …tflite-micro/
+git clone https://github.com/juliagoda/CH341SER.git
+Then cd back to home
+Sudo apt install dwarves
+cp  /sys/kernel/btf/vmlinux  /usr/lib/modules/`uname -r`/build/, note ‘uname-r’ is not the actual name of the file, you will have to find it out 
+cd to tflite-micro/CH341SER/ 
+Sudo apt install linux-headers-$(uname -r)
+make CC=/usr/bin/x86_64-linux-gnu-gcc-13
+Sudo make load
+Plug your usb board in and run dmesg | grep "ch34x"
+
+Now you should be ready to upload
